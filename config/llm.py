@@ -31,7 +31,7 @@ def get_llm():
         raise ValueError("GROK_API_KEY is missing from environment variables.")
         
     return ChatGroq(
-        model_name="llama-3.1-8b-instant", 
+        model_name="openai/gpt-oss-120b", 
         api_key=grok_api_key,
         temperature=0.1,
         max_tokens=4096

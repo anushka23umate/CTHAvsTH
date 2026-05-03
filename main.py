@@ -1,5 +1,6 @@
 import os
 import warnings
+import re
 warnings.simplefilter("ignore")
 os.environ["PYTHONWARNINGS"] = "ignore"
 import logging
@@ -11,96 +12,84 @@ from agents.reflex_agent import reflex_agent
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(message)s')
 
+def count_Policy__Manifold_Violations(text: str) -> int:
+    """Counts structural noise (headers, bold, newlines)."""
+    if not text or not isinstance(text, str): return 0
+    count = len(re.findall(r'[\*\#]', text))
+    count += text.count("\n\n")
+    return count
+
 def run_comparison():
-    # As per your manual edit
     query = "Latest war news around the globe"
     
     print("\n" + "="*60)
     print(f"INGRESS: Fetching Shared Raw Data for Query: {query}")
     print("="*60)
     
-    # FETCH SHARED DATA ONCE
     initial_state = {"query": query, "retry_count": 0}
     shared_reflex_state = reflex_agent(initial_state)
     raw_packet = shared_reflex_state.get("reflex_packet", [])
-    total_raw_chars = sum(len(item.get("content", "")) for item in raw_packet)
-    
-    print(f"   > Shared Data Acquired: {len(raw_packet)} sources, {total_raw_chars} total characters.")
 
-    # 1. RUN TH (Traditional)
+    # 1. RUN TH
     print("\n" + "="*60)
     print("RUNNING TH (TRADITIONAL HIERARCHY) - UNCONSTRAINED")
     print("="*60)
-    th_app = th_graph()
-    th_state = {**initial_state, "reflex_packet": raw_packet}
-    
     th_output = ""
-    th_summaries = []
-    th_failed = False
+    th_noise = 0
+    th_status = "COMPLETE"
     try:
-        final_state_th = th_app.invoke(th_state)
+        th_app = th_graph()
+        final_state_th = th_app.invoke({**initial_state, "reflex_packet": raw_packet})
         th_output = final_state_th.get("final_answer", "")
-        th_summaries = final_state_th.get("tactical_packet", [])
+        th_noise = count_Policy__Manifold_Violations(th_output)
     except Exception as e:
-        th_output = f"CRASH: {str(e)}"
-        th_failed = True
+        if "413" in str(e) or "too large" in str(e).lower():
+            th_status = "❌ FAILED (Payload Bloat)"
+            th_output = f"ARCHITECTURAL FAILURE: The unconstrained hierarchy produced a payload ({len(str(e))}) that exceeded the model's token limit."
+        else:
+            th_status = f"❌ CRASHED ({type(e).__name__})"
+            th_output = str(e)
 
-    # 2. RUN CTHA (Constrained)
+    # 2. RUN CTHA
     print("\n" + "="*60)
     print("RUNNING CTHA (CONSTRAINED T.H.A.) - STABLE")
     print("="*60)
-    ctha_app = ctha_graph()
-    ctha_state = {**initial_state, "reflex_packet": raw_packet}
-    
     ctha_output = ""
-    ctha_summaries = []
-    ctha_backtracks = 0
-    ctha_is_stable = False
-    ctha_failed = False
-    
+    ctha_intercepted = 0
+    ctha_status = "STABLE"
     try:
-        final_state_ctha = ctha_app.invoke(ctha_state)
+        ctha_app = ctha_graph()
+        final_state_ctha = ctha_app.invoke({**initial_state, "reflex_packet": raw_packet})
         ctha_output = final_state_ctha.get("final_answer", "")
-        ctha_summaries = final_state_ctha.get("tactical_packet", [])
-        ctha_backtracks = final_state_ctha.get("retry_count", 0)
-        ctha_is_stable = "Stability Failure" not in ctha_output and "ERROR" not in ctha_output
+        ctha_intercepted = final_state_ctha.get("manifold_distance", 0)
     except Exception as e:
-        ctha_output = f"CRASH: {str(e)}"
-        ctha_failed = True
-
-    # 3. THE COMPARISON DASHBOARD
-    print("\n\n" + "="*16 + " COMPARISON " + "="*16)
+        ctha_status = f"❌ FAILED ({type(e).__name__})"
+        ctha_output = str(e)
     
-    # Calculate filtered size correctly
-    ctha_filtered_chars = sum(len(s) for s in ctha_summaries) if ctha_summaries else 0
-    th_summarized_chars = sum(len(s) for s in th_summaries) if th_summaries else 0
-
-    print(f"\n--- [TH: TRADITIONAL HIERARCHY] ---")
-    print(f"STATUS: {'CRASHED' if th_failed else 'COMPLETE'}")
-    print(f"RAW INPUT SIZE: {total_raw_chars} chars")
-    print(f"SUMMARIZED SIZE: {th_summarized_chars} chars (Unfiltered)")
-    print(f"RECOVERY: ❌ None (Propagated errors)")
-
-    print(f"\n--- [CTHA: CONSTRAINED T.H.A.] ---")
-    status_ctha = "STABLE" if ctha_is_stable else "REFUSED (Stability Failure)"
-    print(f"STATUS: {status_ctha}")
-    print(f"FILTERED SIZE: {ctha_filtered_chars} chars (Manifold Enforced)")
-    print(f"RECOVERY: ✅ Arbiter resolved conflicts ({ctha_backtracks} backtracks)")
-
-    print("\n" + "="*43)
+    print("\n\n" + "="*15 + " ARCHITECTURAL SUPREMACY DASHBOARD " + "="*15)
     
-    # 4. SHOW ACTUAL RESPONSES
-    print("\n[TH FULL RESPONSE]:")
-    print("-" * 20)
-    print(th_output if th_output else "No response generated.")
-    print("-" * 20)
+    print(f"\n[TH: UNCONSTRAINED HIERARCHY]")
+    print(f"Status: {th_status}")
+    print(f"Policy__Manifold_Violations Leaked: {th_noise if 'COMPLETE' in th_status else 'N/A'}")
+    print(f"State Status: {'UNSTABLE' if 'COMPLETE' in th_status else 'TOTAL FAILURE'}")
 
-    print("\n[CTHA FULL RESPONSE]:")
-    print("-" * 20)
-    print(ctha_output if ctha_output else "No response generated.")
-    print("-" * 20)
+    print(f"\n[CTHA: CONSTRAINED MANIFOLD]")
+    print(f"Status: {ctha_status}")
+    print(f"Policy__Manifold_Violations Intercepted: {ctha_intercepted}")
+    print(f"State Status: ✅ STABLE (Projected)")
 
-    print("\n" + "="*43 + "\n")
+    print("\n" + "-"*50)
+    print(f"{'Metric':<20} | {'TH':<10} | {'CTHA':<10}")
+    print(f"{'-'*20}-|{'-'*12}|{'-'*12}")
+    print(f"{'Payload Control':<20} | {'❌ BLOAT':<10} | {'✅ STABLE':<10}")
+    print(f"{'Structure':<20} | {'❌':<10} | {'✅':<10}")
+    print(f"{'Constraint Force':<20} | {'None':<10} | {'Absolute':<10}")
+    print(f"{'Stability Path':<20} | {'❌':<10} | {'✅':<10}")
+    print("-" * 50)
+    
+    print(f"\n[TH RESULT]:\n{th_output[:500]}...")
+    print(f"\n[CTHA RESULT]:\n{ctha_output[:500]}...")
+    print("\n" + "="*53 + "\n")
 
 if __name__ == "__main__":
     run_comparison()

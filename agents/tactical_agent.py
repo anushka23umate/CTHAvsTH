@@ -7,22 +7,21 @@ llm = get_llm()
 def tactical_agent(state: AgentState) -> Dict:
     """
     LAYER: TACTICAL (TH - UNCONSTRAINED)
-    Responsibility: Loose information summary.
-    Communication: Free Natural Language.
+    Forcing a smaller window to avoid 413 Payload error for the demo.
     """
     data = state.get("reflex_packet", [])
     print(f"\n[TH] Entering Tactical Layer")
-    print(f"   > [FLOW] Tactical received {len(data)} raw data packets.")
     
     if not data:
         return {"tactical_packet": [], "is_contract_valid": False}
 
-    print(f"   > [TH] Distilling info via unconstrained summary...")
+    # TRUNCATION: Only take top 2 sources to ensure we fit in the 8k context window
+    demo_data = data[:2]
+    print(f"   > [TH] Processing {len(demo_data)} sources (Truncated for Context Window).")
+    
     summaries = []
-    for i, d in enumerate(data):
-        # TH: Unconstrained, loose prompt.
-        prompt = f"Summarize this news source for me in detail. Include everything you think is important.\n\nCONTENT: {d['content'][:4000]}"
-        
+    for i, d in enumerate(demo_data):
+        prompt = f"Summarize this news source for me in detail. Include everything you think is important.\n\nCONTENT: {d['content'][:1500]}"
         response = llm.invoke(prompt)
         summary = response.content if hasattr(response, 'content') else str(response)
         summaries.append(summary)

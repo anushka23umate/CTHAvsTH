@@ -34,39 +34,37 @@ def ctha_tactical_agent(state: AgentState) -> Dict:
             response = llm.invoke(prompt)
             summary = response.content if hasattr(response, 'content') else str(response)
             summaries.append(summary)
-            print(f"     [MSG PASS] Source {i+1} distilled: {summary[:50]}...")
 
-    projected = PMplan(summaries)
+    projected = PMplan(summaries, state.get("query", ""))
     return {"tactical_packet": summaries, "tactical_packet_projected": projected}
 
 def ctha_strategic_agent(state: AgentState) -> Dict:
     print("\n--- [CTHA] Entering Strategic Manifold ---")
     plan = state.get("tactical_packet_projected", {})
     query = state.get("query", "")
-    
     if not plan.get("is_stable", False):
         return {"strategic_packet": "STABILITY_FAILURE"}
     
     facts_str = "\n\n".join(plan.get("payload", []))
-    # POLICY: Requesting a single concise paragraph
     prompt = f"Using these facts, write ONE CONCISE PARAGRAPH summarizing {query}. NO HEADERS. NO BULLETS:\n{facts_str}"
     
     print(f"   > [CTHA] Drafting Concise Strategic Statement...")
     response = llm.invoke(prompt)
     draft = response.content if hasattr(response, 'content') else str(response)
-    print(f"     [MSG PASS] Draft generated: {draft[:100]}...")
     return {"strategic_packet": draft}
 
 def ctha_institutional_agent(state: AgentState) -> Dict:
     print("\n--- [CTHA] Entering Institutional Manifold ---")
     draft = state.get("strategic_packet", "")
-    query = state.get("query", "")
-    
     if "STABILITY_FAILURE" in draft:
-        return {"final_answer": f"ERROR: Stability failure for query: {query}"}
+        return {"final_answer": "ERROR: Stability failure."}
 
     from ctha.contracts import PMpol
-    # Institutional layer enforces the Paragraph Policy strictly via the manifold
-    final_output = PMpol(draft)
-    print(f"   > [FLOW] Institutional applied PMpol policy projection.")
-    return {"final_answer": final_output}
+    # Correctly unpack the (text, count) tuple
+    final_output, noise_count = PMpol(draft)
+    print(f"   > [FLOW] Institutional applied PMpol. Neutralized {noise_count} structural Policy__Manifold_Violations.")
+    
+    return {
+        "final_answer": final_output,
+        "manifold_distance": noise_count
+    }
