@@ -1,0 +1,13 @@
+langchain
+langgraph
+python-dotenv
+requests
+beautifulsoup4
+tqdm
+langchain_community
+langchain-huggingface
+huggingface-hub
+langchain-groq
+langchain-openai
+ddgs
+googlesearch-python
