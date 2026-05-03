@@ -3,25 +3,20 @@ from typing import Dict, List, Any
 def PMsum(packet: List[Dict]) -> List[Dict]:
     """
     Manifold Projection for Summary.
-    REJECTION: Strictly filter out administrative noise (403, 404, robots).
     """
     projected = []
-    # Removed 'cookies' and 'subscribe' to allow more news sources in the demo
-    noise_keywords = [
-        "access denied", "403 forbidden", "404 not found", 
-        "robot check", "please enable javascript"
-    ]
+    noise_keywords = ["access denied", "403 forbidden", "404 not found", "robot check"]
     
     for item in packet:
         content = item.get("content", "").lower()
         if any(kw in content for kw in noise_keywords):
             continue
-        if len(content) < 400: # Slightly lower threshold for 'Density'
+        if len(content) < 400:
             continue
             
         projected.append({
             "url": item.get("url", ""),
-            "content": item.get("content", "")[:2500], # Increased limit slightly
+            "content": item.get("content", "")[:2000],
             "density": "VALIDATED"
         })
     return projected
@@ -33,8 +28,7 @@ def PMplan(summaries: List[str]) -> Dict[str, Any]:
     if not summaries:
         return {"fact_count": 0, "payload": [], "is_stable": False}
     
-    # Check for general relevance to war/conflict/news
-    has_target = any(any(w in s.lower() for w in ["war", "conflict", "news", "fusion", "ukraine", "russia"]) for s in summaries)
+    has_target = any(any(w in s.lower() for w in ["war", "conflict", "news", "fusion", "ukraine"]) for s in summaries)
     
     return {
         "fact_count": len(summaries),
@@ -45,18 +39,22 @@ def PMplan(summaries: List[str]) -> Dict[str, Any]:
 
 def PMpol(draft: str) -> str:
     """
-    Final Policy Manifold.
+    Final Policy Manifold (REVISED: STRICT CONCISENESS).
+    POLICY: The final output MUST be a single, unified paragraph.
     """
     if not draft: return ""
-    blocks = draft.split('\n\n')
-    unique_blocks = []
-    seen = set()
-    for b in blocks:
-        clean_b = b.strip()
-        if clean_b and clean_b[:100] not in seen:
-            unique_blocks.append(clean_b)
-            seen.add(clean_b[:100])
-    return "\n\n".join(unique_blocks)
+    
+    # Remove all headers, bullet points, and extra newlines
+    import re
+    clean = re.sub(r'\*+', '', draft) # Remove bold/bullets
+    clean = re.sub(r'#+', '', clean) # Remove headers
+    
+    # Merge all lines into one paragraph
+    lines = [line.strip() for line in clean.split('\n') if line.strip()]
+    merged = " ".join(lines)
+    
+    # Ensure it's not too long (Policy truncation)
+    return merged[:1000] + "..." if len(merged) > 1000 else merged
 
 def validate_contract(state: Dict) -> bool:
     plan = state.get("tactical_packet_projected", {})
