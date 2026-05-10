@@ -23,7 +23,7 @@ def reflex_agent(state: AgentState) -> Dict:
         print(f"\n[LAYER: REFLEX] Using pre-provided synced data ({len(existing_data)} sources).")
         return {"reflex_packet": existing_data}
 
-    query = state.get("query", "Latest news")
+    query = state.get("query", "General Research")
     print(f"\n[LAYER: REFLEX] Fetching LIVE Data (Attempt {state.get('retry_count', 0) + 1})")
     
     results = []
@@ -48,7 +48,8 @@ def reflex_agent(state: AgentState) -> Dict:
                     })
                     print(f"   > Data acquired. Size: {len(text[:5000])} characters.")
                 except Exception as scrape_err:
-                    print(f"--- [SCRAPER] Failed to scrape {url}: {str(scrape_err)} ---")
+                    # Supressing print to keep logs focused on Inter-layer communication
+                    # print(f"--- [SCRAPER] Failed to scrape {url}: {str(scrape_err)} ---")
                     # Still keep the snippet from DDGS if scrape fails
                     results.append({"url": url, "content": r.get('body', '')})
                     

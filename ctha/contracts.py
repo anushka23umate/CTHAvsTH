@@ -1,42 +1,79 @@
 from typing import Dict, List, Any, Tuple
 import re
 
-def PMsum(packet: List[Dict]) -> List[Dict]:
-    """Manifold Projection for Summary."""
+def PMsum(packet: List[Dict], max_sources: int = 4) -> List[Dict]:
+    """
+    Manifold Projection for Summary (Upward Message).
+    Implements: Validate, Truncate k, and Sanitize.
+    """
     projected = []
-    # More lenient for the 'Universal' proof
-    noise_keywords = ["access denied", "404 not found"]
+    noise_keywords = ["access denied", "404 not found", "captcha", "cookie policy"]
+    
+    # 1. Validate & Sanitize
     for item in packet:
-        content = item.get("content", "").lower()
-        if any(kw in content for kw in noise_keywords): continue
-        if len(content) < 200: continue # Even more lenient
-        projected.append({"url": item.get("url", ""), "content": item.get("content", "")[:1500], "density": "VALIDATED"})
-    return projected
+        content = item.get("content", "")
+        if not isinstance(content, str):
+            content = str(content)
+            
+        # Remove structural noise (excessive whitespace, script tags placeholders, etc)
+        content = re.sub(r'\s+', ' ', content).strip()
+        
+        # Check against noise manifold
+        if any(kw in content.lower() for kw in noise_keywords):
+            continue
+        
+        if len(content) < 300: # Information density threshold
+            continue
+            
+        projected.append({
+            "url": item.get("url", ""),
+            "content": content[:2000], # Truncate per source
+            "status": "VALIDATED"
+        })
+    
+    # 2. Truncate k (Temporal hierarchy constraint)
+    return projected[:max_sources]
 
 def PMplan(summaries: List[str], query: str = "") -> Dict[str, Any]:
-    """Universal Manifold Projection for Plan."""
-    if not summaries: return {"fact_count": 0, "payload": [], "is_stable": False}
-    # Universal intent check: Any overlap with query words makes it stable enough for a demo
-    query_words = [w.lower() for w in query.split() if len(w) > 3]
-    all_text = " ".join(summaries).lower()
-    has_alignment = any(w in all_text for w in query_words) if query_words else True
+    """
+    Manifold Projection for Plan (Downward Message).
+    Enforces goal alignment and stability.
+    """
+    if not summaries:
+        return {"fact_count": 0, "payload": [], "is_stable": False, "reason": "No valid evidence"}
+    
+    # Check for semantic alignment with the query
+    query_terms = set(re.findall(r'\w{4,}', query.lower()))
+    combined_evidence = " ".join(summaries).lower()
+    
+    alignment_score = sum(1 for term in query_terms if term in combined_evidence)
+    is_stable = alignment_score > 0 or not query_terms
     
     return {
         "fact_count": len(summaries),
         "payload": summaries,
-        "is_stable": len(summaries) >= 1, # Stable if we have at least 1 fact
-        "state_validity": "VERIFIED"
+        "is_stable": is_stable,
+        "alignment_score": alignment_score,
+        "state_validity": "VERIFIED" if is_stable else "UNSTABLE"
     }
 
 def PMpol(draft: str) -> Tuple[str, int]:
-    """Final Policy Manifold (Absolute Force)."""
+    """
+    Policy Manifold (Institutional Constraint).
+    Neutralizes structural violations and ensures formatting compliance.
+    """
     if not draft: return "", 0
-    hallucination_count = len(re.findall(r'[\*\#]', draft))
-    hallucination_count += draft.count("\n\n")
-    clean = re.sub(r'[\*\#]', '', draft)
-    lines = [line.strip() for line in clean.split('\n') if line.strip()]
-    return " ".join(lines), hallucination_count
+    
+    # Detect structural noise (e.g., markdown artifacts not requested)
+    violations = len(re.findall(r'[\*\#\-\[\]]', draft))
+    
+    # Sanitize: Remove all markdown headers, bullets, and bolding for 'Concise Paragraph' policy
+    clean = re.sub(r'[\*\#\-\[\]]', '', draft)
+    clean = " ".join(clean.split()) # Normalize whitespace
+    
+    return clean, violations
 
 def validate_contract(state: Dict) -> bool:
+    """Arbiter-level contract validation."""
     plan = state.get("tactical_packet_projected", {})
     return plan.get("is_stable", False)

@@ -9,6 +9,10 @@ __pycache__/
 # Env files
 .env
 
+# Generated files
+*.pptx
+pdf_text.txt
+
 # OS / IDE
 .vscode/
 .idea/

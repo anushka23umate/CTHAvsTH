@@ -11,6 +11,7 @@ from agents.reflex_agent import reflex_agent
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(message)s')
+logging.getLogger("httpx").setLevel(logging.WARNING) # Suppress Groq API request logs
 
 def count_Policy__Manifold_Violations(text: str) -> int:
     """Counts structural noise (headers, bold, newlines)."""
@@ -20,7 +21,13 @@ def count_Policy__Manifold_Violations(text: str) -> int:
     return count
 
 def run_comparison():
-    query = "Latest war news around the globe"
+    print("\n" + "="*60)
+    print(" CTHA vs TH: ARCHITECTURAL SUPREMACY BENCHMARK")
+    print("="*60)
+    
+    query = input("\nEnter your research query/topic: ").strip()
+    if not query:
+        query = "impact of US isreal war in india"
     
     print("\n" + "="*60)
     print(f"INGRESS: Fetching Shared Raw Data for Query: {query}")
@@ -66,29 +73,45 @@ def run_comparison():
         ctha_status = f"❌ FAILED ({type(e).__name__})"
         ctha_output = str(e)
     
+    # Dynamic Metric Calculation
+    th_state_status = "UNSTABLE" if th_noise > 0 else "STABLE"
+    ctha_state_status = "✅ STABLE (Projected)" if "STABLE" in ctha_status else "❌ UNSTABLE"
+
+    th_payload_desc = "❌ BLOAT" if th_noise > 20 or len(th_output) > 800 else "✅ COMPACT"
+    ctha_payload_desc = "✅ STABLE" if len(ctha_output) < 1000 else "⚠️ LARGE"
+    
+    th_struct = "❌" if th_noise > 0 else "✅"
+    ctha_struct = "✅" if ctha_intercepted > 0 or "STABLE" in ctha_status else "❌"
+
+    th_stability = "❌" if "FAILED" in th_status or th_noise > 10 else "✅"
+    ctha_stability = "✅" if "STABLE" in ctha_status else "❌"
+    
+    th_force = "None" if th_noise > 0 else "Partial"
+    ctha_force = "Absolute" if ctha_intercepted > 0 or "STABLE" in ctha_status else "Failed"
+
     print("\n\n" + "="*15 + " ARCHITECTURAL SUPREMACY DASHBOARD " + "="*15)
     
     print(f"\n[TH: UNCONSTRAINED HIERARCHY]")
     print(f"Status: {th_status}")
     print(f"Policy__Manifold_Violations Leaked: {th_noise if 'COMPLETE' in th_status else 'N/A'}")
-    print(f"State Status: {'UNSTABLE' if 'COMPLETE' in th_status else 'TOTAL FAILURE'}")
+    print(f"State Status: {th_state_status if 'COMPLETE' in th_status else 'TOTAL FAILURE'}")
 
     print(f"\n[CTHA: CONSTRAINED MANIFOLD]")
     print(f"Status: {ctha_status}")
     print(f"Policy__Manifold_Violations Intercepted: {ctha_intercepted}")
-    print(f"State Status: ✅ STABLE (Projected)")
+    print(f"State Status: {ctha_state_status}")
 
     print("\n" + "-"*50)
     print(f"{'Metric':<20} | {'TH':<10} | {'CTHA':<10}")
     print(f"{'-'*20}-|{'-'*12}|{'-'*12}")
-    print(f"{'Payload Control':<20} | {'❌ BLOAT':<10} | {'✅ STABLE':<10}")
-    print(f"{'Structure':<20} | {'❌':<10} | {'✅':<10}")
-    print(f"{'Constraint Force':<20} | {'None':<10} | {'Absolute':<10}")
-    print(f"{'Stability Path':<20} | {'❌':<10} | {'✅':<10}")
+    print(f"{'Payload Control':<20} | {th_payload_desc:<10} | {ctha_payload_desc:<10}")
+    print(f"{'Structure':<20} | {th_struct:<10} | {ctha_struct:<10}")
+    print(f"{'Constraint Force':<20} | {th_force:<10} | {ctha_force:<10}")
+    print(f"{'Stability Path':<20} | {th_stability:<10} | {ctha_stability:<10}")
     print("-" * 50)
     
-    print(f"\n[TH RESULT]:\n{th_output[:500]}...")
-    print(f"\n[CTHA RESULT]:\n{ctha_output[:500]}...")
+    print(f"\n[TH RESULT]:\n{th_output}")
+    print(f"\n[CTHA RESULT]:\n{ctha_output}")
     print("\n" + "="*53 + "\n")
 
 if __name__ == "__main__":

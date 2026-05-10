@@ -11,6 +11,9 @@ def tactical_agent(state: AgentState) -> Dict:
     """
     data = state.get("reflex_packet", [])
     print(f"\n[TH] Entering Tactical Layer")
+    print(f"   > [MSG IN] Received Reflex Packet:")
+    for i, d in enumerate(data):
+        print(f"       - Source {i+1}: {d.get('url', 'Unknown')}")
     
     if not data:
         return {"tactical_packet": [], "is_contract_valid": False}
@@ -21,10 +24,14 @@ def tactical_agent(state: AgentState) -> Dict:
     
     summaries = []
     for i, d in enumerate(demo_data):
-        prompt = f"Summarize this news source for me in detail. Include everything you think is important.\n\nCONTENT: {d['content'][:1500]}"
+        base_prompt = "Extract 5 dense technical facts."
+        prompt = f"{base_prompt}\n\nCONTENT: {d['content'][:1500]}"
         response = llm.invoke(prompt)
         summary = response.content if hasattr(response, 'content') else str(response)
         summaries.append(summary)
-        print(f"     [MSG PASS] Source {i+1} summarized: {summary[:100]}...")
+        print(f"     [MSG PASS] Source {i+1} summarized.")
 
+    print(f"   > [MSG OUT] Passing Tactical Packet to Strategic:")
+    for i, s in enumerate(summaries):
+        print(f"       [Fact Set {i+1}]: {s[:150].strip()}...")
     return {"tactical_packet": summaries, "is_contract_valid": True}
