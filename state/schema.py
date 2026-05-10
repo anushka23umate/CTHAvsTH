@@ -12,3 +12,9 @@ class AgentState(TypedDict):
     retry_count: int
     authority_scope: str
     is_contract_valid: bool
+    
+    # Efficient Infrastructure Design variables
+    step_count: int
+    goal_completed: bool
+    session_boundary: bool
+    cached_messages: Dict[str, Any]

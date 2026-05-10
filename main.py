@@ -33,7 +33,14 @@ def run_comparison():
     print(f"INGRESS: Fetching Shared Raw Data for Query: {query}")
     print("="*60)
     
-    initial_state = {"query": query, "retry_count": 0}
+    initial_state = {
+        "query": query, 
+        "retry_count": 0,
+        "step_count": 1,
+        "goal_completed": True,
+        "session_boundary": True,
+        "cached_messages": {}
+    }
     shared_reflex_state = reflex_agent(initial_state)
     raw_packet = shared_reflex_state.get("reflex_packet", [])
 
